@@ -22,21 +22,17 @@ class DebitAccountTest {
     }
 
     @Test
-    void zeroDepositDoesNotChangeBalance() {
+    void zeroDepositThrowsException() {
         DebitAccount account = new DebitAccount(new AccountNumber("0000000001"), "Ivan", 1000);
 
-        account.deposit(0);
-
-        assertEquals(1000, account.getBalance(), "Пополнение на 0 не меняет баланс");
+        assertThrows(IllegalArgumentException.class, () -> account.deposit(0), "Пополнение на вызывает исключение");
     }
 
     @Test
-    void negativeDepositDoesNotChangeBalance() {
+    void negativeDepositThrowsException() {
         DebitAccount account = new DebitAccount(new AccountNumber("0000000001"), "Ivan", 1000);
 
-        account.deposit(-500);
-
-        assertEquals(1000, account.getBalance(), "Отрицательное пополнение не меняет баланс");
+        assertThrows(IllegalArgumentException.class, () -> account.deposit(-100), "Пополнение на отрицательную сумму вызывает исключение");
     }
 
     @Test
