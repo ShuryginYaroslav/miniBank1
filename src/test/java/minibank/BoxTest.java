@@ -6,22 +6,22 @@ import static org.junit.jupiter.api.Assertions.*;
 class BoxTest {
 
     @Test
-    void stringValueIsReadBack() {
-        Box box = new Box();
-        box.set("Java");
+    void stringBoxReturnsString() {
+        Box<String> text = new Box<>();
+        text.set("Java");
 
-        String value = (String) box.get();
+        String s = text.get();
 
-        assertEquals("Java", value);
+        assertEquals("Java", s);
     }
 
     @Test
-    void integerValueFailsOnCastToString() {
-        Box box = new Box();
-        box.set(123);
+    void integerBoxReturnsInteger() {
+        Box<Integer> number = new Box<>();
+        number.set(42);
 
-        assertThrows(ClassCastException.class, () -> {
-            String value = (String) box.get();
-        });
+        Integer n = number.get();
+
+        assertEquals(42, n);
     }
 }
