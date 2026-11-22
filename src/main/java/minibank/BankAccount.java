@@ -26,7 +26,17 @@ public abstract class BankAccount {
         this.balance += amount;
     }
 
-    public abstract boolean withdraw(double amount);
+    public void withdraw(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Сумма должна быть положительной");
+        }
+        if (amount > getAvailableAmount()) {
+            throw new InsufficientFundsException("Недостаточно средств");
+        }
+        setBalance(this.balance - amount);
+    }
+
+    protected abstract double getAvailableAmount();
 
     public double getBalance() {
         return balance;

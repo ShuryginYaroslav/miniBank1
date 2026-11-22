@@ -64,11 +64,11 @@ public class Main {
                 case 2:
                     System.out.print("Сумма для снятия: ");
                     double wd = readDouble(scanner);
-                    boolean ok = account.withdraw(wd);
-                    if (ok) {
+                    try {
+                        account.withdraw(wd);
                         System.out.println("✅ Успешно. Новый баланс: " + account.getBalance());
-                    } else {
-                        System.out.println("❌ Отказано. Баланс не изменился: " + account.getBalance());
+                    } catch (IllegalArgumentException | InsufficientFundsException e) {
+                        System.out.println("❌ Отказано: " + e.getMessage() + ". Баланс: " + account.getBalance());
                     }
                     break;
 

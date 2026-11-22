@@ -9,9 +9,8 @@ class CreditAccountTest {
     void accountCanGoNegative() {
         CreditAccount account = new CreditAccount(new AccountNumber("0000000003"), "Oleg", 1000, 5000);
 
-        boolean result = account.withdraw(2000);
+        account.withdraw(2000);
 
-        assertTrue(result);
         assertEquals(-1000, account.getBalance(), "Баланс может быть отрицательным");
     }
 
@@ -19,9 +18,8 @@ class CreditAccountTest {
     void canUseCreditLimit() {
         CreditAccount account = new CreditAccount(new AccountNumber("0000000003"), "Oleg", 1000, 5000);
 
-        boolean result = account.withdraw(5000);
+        account.withdraw(5000);
 
-        assertTrue(result);
         assertEquals(-4000, account.getBalance());
     }
 
@@ -29,9 +27,8 @@ class CreditAccountTest {
     void cannotExceedCreditLimit() {
         CreditAccount account = new CreditAccount(new AccountNumber("0000000003"), "Oleg", 1000, 5000);
 
-        boolean result = account.withdraw(7000);
-
-        assertFalse(result, "Нельзя превысить кредитный лимит");
+        assertThrows(InsufficientFundsException.class, () -> account.withdraw(7000),
+                "Нельзя превысить кредитный лимит");
         assertEquals(1000, account.getBalance());
     }
 
@@ -40,9 +37,7 @@ class CreditAccountTest {
         CreditAccount account = new CreditAccount(new AccountNumber("0000000003"), "Oleg", 1000, 5000);
         account.withdraw(5000);
 
-        boolean result = account.withdraw(2000);
-
-        assertFalse(result);
+        assertThrows(InsufficientFundsException.class, () -> account.withdraw(2000));
         assertEquals(-4000, account.getBalance(), "При неуспешном снятии баланс не меняется");
     }
 }

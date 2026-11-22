@@ -39,9 +39,8 @@ class DebitAccountTest {
     void withdrawDecreasesBalance() {
         DebitAccount account = new DebitAccount(new AccountNumber("0000000001"), "Ivan", 1000);
 
-        boolean result = account.withdraw(300);
+        account.withdraw(300);
 
-        assertTrue(result);
         assertEquals(700, account.getBalance());
     }
 
@@ -49,9 +48,8 @@ class DebitAccountTest {
     void cannotWithdrawMoreThanBalance() {
         DebitAccount account = new DebitAccount(new AccountNumber("0000000001"), "Ivan", 1000);
 
-        boolean result = account.withdraw(1500);
-
-        assertFalse(result, "Снятие сверх баланса запрещено");
+        assertThrows(InsufficientFundsException.class, () -> account.withdraw(1500),
+                "Снятие сверх баланса запрещено");
         assertEquals(1000, account.getBalance(), "Баланс не должен измениться");
     }
 
@@ -59,9 +57,8 @@ class DebitAccountTest {
     void zeroWithdrawIsForbidden() {
         DebitAccount account = new DebitAccount(new AccountNumber("0000000001"), "Ivan", 1000);
 
-        boolean result = account.withdraw(0);
-
-        assertFalse(result, "Снятие нуля запрещено");
+        assertThrows(IllegalArgumentException.class, () -> account.withdraw(0),
+                "Снятие нуля запрещено");
         assertEquals(1000, account.getBalance());
     }
 
@@ -69,9 +66,8 @@ class DebitAccountTest {
     void negativeWithdrawIsForbidden() {
         DebitAccount account = new DebitAccount(new AccountNumber("0000000001"), "Ivan", 1000);
 
-        boolean result = account.withdraw(-100);
-
-        assertFalse(result, "Снятие отрицательной суммы запрещено");
+        assertThrows(IllegalArgumentException.class, () -> account.withdraw(-100),
+                "Снятие отрицательной суммы запрещено");
         assertEquals(1000, account.getBalance());
     }
     @Test

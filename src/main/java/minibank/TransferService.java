@@ -27,7 +27,9 @@ public class TransferService {
         double commission = commissionPolicy.calculate(amount);
         double totalToWithdraw = amount + commission;
 
-        if (!from.withdraw(totalToWithdraw)) {
+        try {
+            from.withdraw(totalToWithdraw);
+        } catch (InsufficientFundsException e) {
             return false;
         }
         to.deposit(amount);

@@ -12,15 +12,8 @@ public class CreditAccount extends BankAccount {
     }
 
     @Override
-    public boolean withdraw(double amount) {
-        if (amount <= 0) {
-            return false;
-        }
-        if (this.getBalance() - amount >= -creditLimit) {
-            setBalance(this.getBalance() - amount);
-            return true;
-        }
-        return false;
+    protected double getAvailableAmount() {
+        return getBalance() + creditLimit;
     }
 
     public double getCreditLimit() {
