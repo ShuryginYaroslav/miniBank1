@@ -24,57 +24,65 @@ class TransferServiceTest {
     }
 
     @Test
-    void failedTransferDoesNotChangeAnyBalance() {
+    void transferWithoutEnoughMoneyThrowsException() {
         DebitAccount from = new DebitAccount(ACC_A, "Ivan", 1000);
         DebitAccount to = new DebitAccount(ACC_B, "Petr", 2000);
         TransferService service = new TransferService(noCommission, silentNotification);
 
-        assertThrows(InsufficientFundsException.class, () -> service.transfer(from, to, 3000),
-                "Перевод должен быть отклонён");
+        InsufficientFundsException ex = assertThrows(InsufficientFundsException.class,
+                () -> service.transfer(from, to, 5000));
+        assertEquals("Недостаточно средств", ex.getMessage());
         assertEquals(1000, from.getBalance(), "Баланс отправителя не должен измениться");
         assertEquals(2000, to.getBalance(), "Баланс получателя не должен измениться");
     }
 
     @Test
-    void cannotTransferNegativeAmount() {
+    void negativeTransferThrowsException() {
         DebitAccount from = new DebitAccount(ACC_A, "Ivan", 1000);
         DebitAccount to = new DebitAccount(ACC_B, "Petr", 1000);
         TransferService service = new TransferService(noCommission, silentNotification);
 
-        assertThrows(InvalidAmountException.class, () -> service.transfer(from, to, -500));
+        InvalidAmountException ex = assertThrows(InvalidAmountException.class,
+                () -> service.transfer(from, to, -500));
+        assertEquals("Сумма перевода должна быть положительной", ex.getMessage());
         assertEquals(1000, from.getBalance());
         assertEquals(1000, to.getBalance());
     }
 
     @Test
-    void cannotTransferZeroAmount() {
+    void zeroTransferThrowsException() {
         DebitAccount from = new DebitAccount(ACC_A, "Ivan", 1000);
         DebitAccount to = new DebitAccount(ACC_B, "Petr", 1000);
         TransferService service = new TransferService(noCommission, silentNotification);
 
-        assertThrows(InvalidAmountException.class, () -> service.transfer(from, to, 0));
+        InvalidAmountException ex = assertThrows(InvalidAmountException.class,
+                () -> service.transfer(from, to, 0));
+        assertEquals("Сумма перевода должна быть положительной", ex.getMessage());
         assertEquals(1000, from.getBalance());
         assertEquals(1000, to.getBalance());
     }
 
     @Test
-    void cannotTransferToSameAccount() {
+    void transferToSameAccountThrowsException() {
         DebitAccount account = new DebitAccount(ACC_A, "Ivan", 10000);
         TransferService service = new TransferService(noCommission, silentNotification);
 
-        assertThrows(IllegalArgumentException.class, () -> service.transfer(account, account, 1000),
-                "Перевод самому себе запрещён");
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.transfer(account, account, 1000));
+        assertEquals("Нельзя перевести на тот же счёт", ex.getMessage());
         assertEquals(10000, account.getBalance());
     }
 
     @Test
-    void transferAboveLimitIsRejected() {
+    void transferOverLimitThrowsException() {
         DebitAccount from = new DebitAccount(ACC_A, "Ivan", 100000);
         DebitAccount to = new DebitAccount(ACC_B, "Petr", 0);
         FakeNotificationService notificationService = new FakeNotificationService();
         TransferService service = new TransferService(noCommission, notificationService);
 
-        assertThrows(TransferLimitExceededException.class, () -> service.transfer(from, to, 50001));
+        TransferLimitExceededException ex = assertThrows(TransferLimitExceededException.class,
+                () -> service.transfer(from, to, 50001));
+        assertEquals("Превышен лимит перевода", ex.getMessage());
         assertEquals(100000, from.getBalance(), "Баланс отправителя не должен измениться");
         assertEquals(0, to.getBalance(), "Получатель не должен получить деньги");
         assertEquals(0, notificationService.getNotificationCount());
