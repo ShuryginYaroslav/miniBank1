@@ -32,7 +32,7 @@ class DebitAccountTest {
     void negativeDepositThrowsException() {
         DebitAccount account = new DebitAccount(new AccountNumber("0000000001"), "Ivan", 1000);
 
-        assertThrows(IllegalArgumentException.class, () -> account.deposit(-100), "Пополнение на отрицательную сумму вызывает исключение");
+        assertThrows(IllegalArgumentException.class, () -> account.deposit(-100), "Пополнение на отрицательную сумму вы");
     }
 
     @Test
