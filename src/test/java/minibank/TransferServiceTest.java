@@ -89,6 +89,18 @@ class TransferServiceTest {
     }
 
     @Test
+    void failedTransferDoesNotChangeBalances() {
+        DebitAccount from = new DebitAccount(ACC_A, "Ivan", 1000);
+        DebitAccount to = new DebitAccount(ACC_B, "Petr", 2000);
+        TransferService service = new TransferService(noCommission, silentNotification);
+
+        assertThrows(InsufficientFundsException.class,
+                () -> service.transfer(from, to, 5000));
+        assertEquals(1000, from.getBalance());
+        assertEquals(2000, to.getBalance());
+    }
+
+    @Test
     void transferAtLimitIsAllowed() {
         DebitAccount from = new DebitAccount(ACC_A, "Ivan", 60000);
         DebitAccount to = new DebitAccount(ACC_B, "Petr", 0);
