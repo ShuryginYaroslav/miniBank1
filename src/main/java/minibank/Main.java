@@ -97,16 +97,15 @@ public class Main {
                     double commission = displayPolicy.calculate(transferAmount);
                     System.out.println("Комиссия: " + commission + ", Итого к списанию: " + (transferAmount + commission));
 
-                    boolean transferOk = transferService.transfer(account, recipient, transferAmount);
-                    if (transferOk) {
+                    try {
+                        transferService.transfer(account, recipient, transferAmount);
                         System.out.println("✅ Перевод успешен.");
-                        System.out.println("   Баланс отправителя: " + account.getBalance());
-                        System.out.println("   Баланс получателя:  " + recipient.getBalance());
-                    } else {
-                        System.out.println("❌ Перевод отклонён.");
-                        System.out.println("   Баланс отправителя: " + account.getBalance());
-                        System.out.println("   Баланс получателя:  " + recipient.getBalance());
+                    } catch (InvalidAmountException | InsufficientFundsException
+                             | TransferLimitExceededException | IllegalArgumentException e) {
+                        System.out.println("❌ Перевод отклонён: " + e.getMessage());
                     }
+                    System.out.println("   Баланс отправителя: " + account.getBalance());
+                    System.out.println("   Баланс получателя:  " + recipient.getBalance());
                     break;
 
 

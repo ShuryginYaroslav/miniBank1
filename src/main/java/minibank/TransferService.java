@@ -1,6 +1,8 @@
 package minibank;
 
 public class TransferService {
+    private static final double TRANSFER_LIMIT = 50_000;
+
     private final CommissionPolicy commissionPolicy;
     private final NotificationService notificationService;
 
@@ -15,27 +17,26 @@ public class TransferService {
         this.notificationService = notificationService;
     }
 
-    public boolean transfer(BankAccount from, BankAccount to, double amount) {
+    public void transfer(BankAccount from, BankAccount to, double amount) {
         if (amount <= 0) {
-            return false;
+            throw new InvalidAmountException("Сумма перевода должна быть положительной");
         }
 
-        if (from == to) {
-            return false;
+        if (from.equals(to)) {
+            throw new IllegalArgumentException("Нельзя перевести на тот же счёт");
+        }
+
+        if (amount > TRANSFER_LIMIT) {
+            throw new TransferLimitExceededException("Превышен лимит перевода");
         }
 
         double commission = commissionPolicy.calculate(amount);
         double totalToWithdraw = amount + commission;
 
-        try {
-            from.withdraw(totalToWithdraw);
-        } catch (InsufficientFundsException e) {
-            return false;
-        }
+        from.withdraw(totalToWithdraw);
         to.deposit(amount);
 
         notificationService.notify("Трансфер " + amount + " завершен");
-        return true;
     }
 }
 
