@@ -2,36 +2,9 @@ package minibank;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class RepositoryTest {
-
-    private static class InMemoryRepository<ID, T extends Identifiable<ID>> implements Repository<ID, T> {
-        private final Map<ID, T> storage = new HashMap<>();
-
-        @Override
-        public void save(T value) {
-            storage.put(value.getId(), value);
-        }
-
-        @Override
-        public T findById(ID id) {
-            return storage.get(id);
-        }
-
-        @Override
-        public boolean existsById(ID id) {
-            return storage.containsKey(id);
-        }
-
-        @Override
-        public int size() {
-            return storage.size();
-        }
-    }
 
     @Test
     void repositoryWorksWithAccountNumberAndBankAccount() {
@@ -62,5 +35,36 @@ class RepositoryTest {
         assertEquals(1, repository.size());
         assertTrue(repository.existsById(1L));
         assertEquals(transaction, repository.findById(1L));
+    }
+
+    @Test
+    void saveRejectsNull() {
+        Repository<AccountNumber, BankAccount> repository = new InMemoryRepository<>();
+
+        assertThrows(IllegalArgumentException.class, () -> repository.save(null));
+        assertEquals(0, repository.size());
+    }
+
+    @Test
+    void saveReplacesEntityWithSameId() {
+        Repository<AccountNumber, BankAccount> repository = new InMemoryRepository<>();
+        AccountNumber number = new AccountNumber("0000000001");
+        BankAccount first = new DebitAccount(number, "Ivan", 1000);
+        BankAccount second = new DebitAccount(number, "Petr", 2000);
+
+        repository.save(first);
+        repository.save(second);
+
+        assertEquals(1, repository.size());
+        assertSame(second, repository.findById(number));
+    }
+
+    @Test
+    void findByIdReturnsNullForMissingId() {
+        Repository<AccountNumber, BankAccount> repository = new InMemoryRepository<>();
+        AccountNumber missing = new AccountNumber("0000000009");
+
+        assertNull(repository.findById(missing));
+        assertFalse(repository.existsById(missing));
     }
 }
