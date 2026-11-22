@@ -2,7 +2,7 @@ package minibank;
 
 import java.util.Objects;
 
-public abstract class BankAccount {
+public abstract class BankAccount implements Identifiable<AccountNumber> {
     private final AccountNumber number;
     private final String owner;
     private double balance;
@@ -47,6 +47,11 @@ public abstract class BankAccount {
     }
 
     public AccountNumber getNumber() { return number; }
+
+    @Override
+    public AccountNumber getId() {
+        return number;
+    }
 
     public String getOwner() { return owner; }
 
