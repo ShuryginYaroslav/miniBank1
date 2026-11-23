@@ -58,4 +58,46 @@ class TransactionJournalTest {
         assertEquals(1, journal.size());
         assertEquals(List.of(transaction), journal.findAll());
     }
+
+    @Test
+    void removeRejectedDeletesOnlyRejectedTransactions() {
+        TransactionJournal journal = new TransactionJournal();
+        Transaction success1 = new Transaction(1L, TransactionType.DEPOSIT, ACC_A, 100, TransactionStatus.SUCCESS);
+        Transaction rejected1 = new Transaction(2L, TransactionType.TRANSFER, ACC_B, 200, TransactionStatus.REJECTED);
+        Transaction success2 = new Transaction(3L, TransactionType.WITHDRAWAL, ACC_A, 50, TransactionStatus.SUCCESS);
+        Transaction rejected2 = new Transaction(4L, TransactionType.TRANSFER, ACC_B, 70, TransactionStatus.REJECTED);
+        journal.add(success1);
+        journal.add(rejected1);
+        journal.add(success2);
+        journal.add(rejected2);
+
+        journal.removeRejected();
+
+        assertEquals(2, journal.size());
+        assertEquals(List.of(success1, success2), journal.findAll());
+    }
+
+    @Test
+    void removeRejectedDoesNothingWhenNoRejectedTransactions() {
+        TransactionJournal journal = new TransactionJournal();
+        Transaction success = new Transaction(1L, TransactionType.DEPOSIT, ACC_A, 100, TransactionStatus.SUCCESS);
+        journal.add(success);
+
+        journal.removeRejected();
+
+        assertEquals(1, journal.size());
+        assertEquals(List.of(success), journal.findAll());
+    }
+
+    @Test
+    void removeRejectedCanEmptyJournal() {
+        TransactionJournal journal = new TransactionJournal();
+        journal.add(new Transaction(1L, TransactionType.TRANSFER, ACC_A, 100, TransactionStatus.REJECTED));
+        journal.add(new Transaction(2L, TransactionType.TRANSFER, ACC_B, 200, TransactionStatus.REJECTED));
+
+        journal.removeRejected();
+
+        assertEquals(0, journal.size());
+        assertTrue(journal.findAll().isEmpty());
+    }
 }
