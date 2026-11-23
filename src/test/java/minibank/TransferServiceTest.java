@@ -232,4 +232,36 @@ class TransferServiceTest {
         assertEquals(expectedMessage, notificationService.getLastMessage(),
                 "Текст уведомления должен соответствовать ожидаемому");
     }
+
+    @Test
+    void transferFromBlockedAccountThrowsException() {
+        DebitAccount from = new DebitAccount(ACC_A, "Ivan", 5000);
+        DebitAccount to = new DebitAccount(ACC_B, "Petr", 1000);
+        BlockedAccountRegistry blockedAccounts = new BlockedAccountRegistry();
+        blockedAccounts.block(ACC_A);
+        FakeNotificationService notificationService = new FakeNotificationService();
+        TransferService service = new TransferService(noCommission, notificationService, blockedAccounts);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> service.transfer(from, to, 2000));
+
+        assertEquals("Source account is blocked", ex.getMessage());
+        assertEquals(5000, from.getBalance());
+        assertEquals(1000, to.getBalance());
+        assertEquals(0, notificationService.getNotificationCount());
+    }
+
+    @Test
+    void transferFromUnblockedAccountIsAllowedWithRegistry() {
+        DebitAccount from = new DebitAccount(ACC_A, "Ivan", 5000);
+        DebitAccount to = new DebitAccount(ACC_B, "Petr", 1000);
+        BlockedAccountRegistry blockedAccounts = new BlockedAccountRegistry();
+        blockedAccounts.block(new AccountNumber("0000000300"));
+        TransferService service = new TransferService(noCommission, silentNotification, blockedAccounts);
+
+        service.transfer(from, to, 2000);
+
+        assertEquals(3000, from.getBalance());
+        assertEquals(3000, to.getBalance());
+    }
 }
