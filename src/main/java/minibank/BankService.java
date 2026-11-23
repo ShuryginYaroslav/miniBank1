@@ -30,4 +30,16 @@ public class BankService {
     public boolean closeAccount(AccountNumber number) {
         return accounts.deleteById(number);
     }
+
+    public void transfer(AccountNumber fromNumber, AccountNumber toNumber, double amount) {
+        BankAccount from = accounts.findById(fromNumber);
+        if (from == null) {
+            throw new IllegalArgumentException("Счёт отправителя не найден");
+        }
+        BankAccount to = accounts.findById(toNumber);
+        if (to == null) {
+            throw new IllegalArgumentException("Счёт получателя не найден");
+        }
+        transferService.transfer(from, to, amount);
+    }
 }
