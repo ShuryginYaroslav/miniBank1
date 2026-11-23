@@ -6,13 +6,19 @@ public class TransferService {
     private final CommissionPolicy commissionPolicy;
     private final NotificationService notificationService;
     private final BlockedAccountRegistry blockedAccounts;
+    private final TransactionJournal journal;
 
     public TransferService(CommissionPolicy commissionPolicy, NotificationService notificationService) {
-        this(commissionPolicy, notificationService, new BlockedAccountRegistry());
+        this(commissionPolicy, notificationService, new BlockedAccountRegistry(), new TransactionJournal());
     }
 
     public TransferService(CommissionPolicy commissionPolicy, NotificationService notificationService,
                            BlockedAccountRegistry blockedAccounts) {
+        this(commissionPolicy, notificationService, blockedAccounts, new TransactionJournal());
+    }
+
+    public TransferService(CommissionPolicy commissionPolicy, NotificationService notificationService,
+                           BlockedAccountRegistry blockedAccounts, TransactionJournal journal) {
         if (commissionPolicy == null) {
             throw new IllegalArgumentException("Политика комиссии не может быть нулевой");
         }
@@ -22,9 +28,13 @@ public class TransferService {
         if (blockedAccounts == null) {
             throw new IllegalArgumentException("Реестр заблокированных счетов не может быть нулевым");
         }
+        if (journal == null) {
+            throw new IllegalArgumentException("Журнал транзакций не может быть нулевым");
+        }
         this.commissionPolicy = commissionPolicy;
         this.notificationService = notificationService;
         this.blockedAccounts = blockedAccounts;
+        this.journal = journal;
     }
 
     public void transfer(BankAccount from, BankAccount to, double amount) {
@@ -51,6 +61,14 @@ public class TransferService {
         to.deposit(amount);
 
         notificationService.notify("Трансфер " + amount + " завершен");
+
+        journal.add(new Transaction(
+                (long) (journal.size() + 1),
+                TransactionType.TRANSFER,
+                from.getNumber(),
+                amount,
+                TransactionStatus.SUCCESS
+        ));
     }
 }
 
