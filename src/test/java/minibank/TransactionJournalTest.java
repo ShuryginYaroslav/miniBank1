@@ -100,4 +100,38 @@ class TransactionJournalTest {
         assertEquals(0, journal.size());
         assertTrue(journal.findAll().isEmpty());
     }
+
+    @Test
+    void findByAccountReturnsOnlyMatchingTransactionsInOrder() {
+        TransactionJournal journal = new TransactionJournal();
+        Transaction first = new Transaction(1L, TransactionType.TRANSFER, ACC_A, 100, TransactionStatus.SUCCESS);
+        Transaction other = new Transaction(2L, TransactionType.TRANSFER, ACC_B, 200, TransactionStatus.SUCCESS);
+        Transaction second = new Transaction(3L, TransactionType.TRANSFER, ACC_A, 300, TransactionStatus.SUCCESS);
+        journal.add(first);
+        journal.add(other);
+        journal.add(second);
+
+        assertEquals(List.of(first, second), journal.findByAccount(ACC_A));
+        assertEquals(List.of(other), journal.findByAccount(ACC_B));
+    }
+
+    @Test
+    void findByAccountReturnsEmptyListForUnknownAccount() {
+        TransactionJournal journal = new TransactionJournal();
+        journal.add(new Transaction(1L, TransactionType.TRANSFER, ACC_A, 100, TransactionStatus.SUCCESS));
+
+        assertTrue(journal.findByAccount(new AccountNumber("0000000300")).isEmpty());
+    }
+
+    @Test
+    void findByAccountReturnsIndependentList() {
+        TransactionJournal journal = new TransactionJournal();
+        journal.add(new Transaction(1L, TransactionType.TRANSFER, ACC_A, 100, TransactionStatus.SUCCESS));
+
+        List<Transaction> found = journal.findByAccount(ACC_A);
+        found.clear();
+
+        assertEquals(1, journal.size());
+        assertEquals(1, journal.findByAccount(ACC_A).size());
+    }
 }
