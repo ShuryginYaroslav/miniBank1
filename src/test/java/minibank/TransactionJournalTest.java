@@ -134,4 +134,29 @@ class TransactionJournalTest {
         assertEquals(1, journal.size());
         assertEquals(1, journal.findByAccount(ACC_A).size());
     }
+
+    @Test
+    void addedTransactionAppearsInJournalAndIndex() {
+        TransactionJournal journal = new TransactionJournal();
+        Transaction transaction = new Transaction(1L, TransactionType.TRANSFER, ACC_A, 100, TransactionStatus.SUCCESS);
+
+        journal.add(transaction);
+
+        assertEquals(List.of(transaction), journal.findAll());
+        assertEquals(List.of(transaction), journal.findByAccount(ACC_A));
+    }
+
+    @Test
+    void removeRejectedUpdatesIndex() {
+        TransactionJournal journal = new TransactionJournal();
+        Transaction rejected = new Transaction(1L, TransactionType.TRANSFER, ACC_A, 100, TransactionStatus.REJECTED);
+        Transaction success = new Transaction(2L, TransactionType.TRANSFER, ACC_A, 200, TransactionStatus.SUCCESS);
+        journal.add(rejected);
+        journal.add(success);
+
+        journal.removeRejected();
+
+        assertEquals(List.of(success), journal.findAll());
+        assertEquals(List.of(success), journal.findByAccount(ACC_A));
+    }
 }
