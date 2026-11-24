@@ -1,6 +1,12 @@
 package minibank;
 
 import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class TransferServiceTest {
@@ -294,5 +300,64 @@ class TransferServiceTest {
         assertThrows(InsufficientFundsException.class, () -> service.transfer(from, to, 2000));
 
         assertEquals(0, journal.size());
+    }
+
+    @Test
+    void transferWithoutCommissionLambda() {
+        DebitAccount from = new DebitAccount(ACC_A, "Ivan", 5000);
+        DebitAccount to = new DebitAccount(ACC_B, "Petr", 0);
+        CommissionPolicy noCommission = amount -> 0.0;
+        TransferService service = new TransferService(noCommission, silentNotification);
+
+        service.transfer(from, to, 1000);
+
+        assertEquals(4000, from.getBalance());
+        assertEquals(1000, to.getBalance());
+    }
+
+    @Test
+    void transferWithOnePercentCommissionLambda() {
+        DebitAccount from = new DebitAccount(ACC_A, "Ivan", 5000);
+        DebitAccount to = new DebitAccount(ACC_B, "Petr", 0);
+        CommissionPolicy onePercent = amount -> amount * 0.01;
+        TransferService service = new TransferService(onePercent, silentNotification);
+
+        service.transfer(from, to, 1000);
+
+        assertEquals(3990, from.getBalance());
+        assertEquals(1000, to.getBalance());
+    }
+
+    @Test
+    void notificationThroughLambda() {
+        DebitAccount from = new DebitAccount(ACC_A, "Ivan", 5000);
+        DebitAccount to = new DebitAccount(ACC_B, "Petr", 0);
+        List<String> messages = new ArrayList<>();
+        NotificationService notification = message -> messages.add(message);
+        TransferService service = new TransferService(amount -> 0.0, notification);
+
+        service.transfer(from, to, 1000);
+
+        assertEquals(List.of("Трансфер 1000.0 завершен"), messages);
+    }
+
+    @Test
+    void notificationThroughMethodReference() {
+        DebitAccount from = new DebitAccount(ACC_A, "Ivan", 5000);
+        DebitAccount to = new DebitAccount(ACC_B, "Petr", 0);
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        try (PrintStream capturedOut = new PrintStream(output)) {
+            System.setOut(capturedOut);
+            NotificationService console = System.out::println;
+            TransferService service = new TransferService(amount -> 0.0, console);
+
+            service.transfer(from, to, 1000);
+
+            assertEquals("Трансфер 1000.0 завершен", output.toString().trim());
+        } finally {
+            System.setOut(originalOut);
+        }
     }
 }
