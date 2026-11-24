@@ -368,4 +368,71 @@ class BankServiceTest {
         assertEquals(before, accounts.findAll());
         assertEquals(1000, service.findAccount(second.getId()).getBalance());
     }
+
+    @Test
+    void findRichAccountsPreservesOrderAndDoesNotChangeStorage() {
+        BankAccount poor = new DebitAccount(new AccountNumber("0000000181"), "Ivan", 1000);
+        BankAccount rich = new DebitAccount(new AccountNumber("0000000182"), "Petr", 100_000);
+        BankAccount richest = new CreditAccount(new AccountNumber("0000000183"), "Maria", 200_000, 50_000);
+        service.openAccount(poor);
+        service.openAccount(rich);
+        service.openAccount(richest);
+        List<BankAccount> before = accounts.findAll();
+        List<BankAccount> expected = before.stream()
+                .filter(a -> a.getBalance() >= 100_000)
+                .toList();
+
+        assertEquals(expected, service.findRichAccounts(100_000));
+        assertEquals(before, accounts.findAll());
+    }
+
+    @Test
+    void findDebitAccountsPreservesOrderAndDoesNotChangeStorage() {
+        BankAccount firstDebit = new DebitAccount(new AccountNumber("0000000184"), "Ivan", 1000);
+        BankAccount credit = new CreditAccount(new AccountNumber("0000000185"), "Petr", 2000, 5000);
+        BankAccount secondDebit = new DebitAccount(new AccountNumber("0000000186"), "Maria", 3000);
+        service.openAccount(firstDebit);
+        service.openAccount(credit);
+        service.openAccount(secondDebit);
+        List<BankAccount> before = accounts.findAll();
+        List<BankAccount> expected = before.stream()
+                .filter(DebitAccount.class::isInstance)
+                .toList();
+
+        assertEquals(expected, service.findDebitAccounts());
+        assertEquals(before, accounts.findAll());
+    }
+
+    @Test
+    void findAccountsByOwnerPreservesOrderAndDoesNotChangeStorage() {
+        BankAccount first = new DebitAccount(new AccountNumber("0000000187"), "Ivan", 1000);
+        BankAccount other = new DebitAccount(new AccountNumber("0000000188"), "Petr", 2000);
+        BankAccount second = new SavingsAccount(new AccountNumber("0000000189"), "Ivan", 3000, 500);
+        service.openAccount(first);
+        service.openAccount(other);
+        service.openAccount(second);
+        List<BankAccount> before = accounts.findAll();
+        List<BankAccount> expected = before.stream()
+                .filter(a -> "Ivan".equals(a.getOwner()))
+                .toList();
+
+        assertEquals(expected, service.findAccountsByOwner("Ivan"));
+        assertEquals(before, accounts.findAll());
+    }
+
+    @Test
+    void streamQueriesReturnEmptyListsForEmptyRepository() {
+        assertTrue(service.findRichAccounts(100_000).isEmpty());
+        assertTrue(service.findDebitAccounts().isEmpty());
+        assertTrue(service.findAccountsByOwner("Ivan").isEmpty());
+    }
+
+    @Test
+    void streamQueriesReturnUnmodifiableLists() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000190"), "Ivan", 1000));
+
+        assertThrows(UnsupportedOperationException.class, () -> service.findRichAccounts(0).clear());
+        assertThrows(UnsupportedOperationException.class, () -> service.findDebitAccounts().clear());
+        assertThrows(UnsupportedOperationException.class, () -> service.findAccountsByOwner("Ivan").clear());
+    }
 }
