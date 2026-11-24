@@ -612,4 +612,52 @@ class BankServiceTest {
         assertTrue(found);
         assertEquals(2, calls.get());
     }
+
+    @Test
+    void findFirstRichAccountReturnsFirstMatchingInRepositoryOrder() {
+        BankAccount poor = new DebitAccount(new AccountNumber("0000000229"), "Ivan", 1000);
+        BankAccount rich = new DebitAccount(new AccountNumber("0000000230"), "Petr", 100_000);
+        BankAccount richest = new DebitAccount(new AccountNumber("0000000231"), "Maria", 200_000);
+        service.openAccount(poor);
+        service.openAccount(rich);
+        service.openAccount(richest);
+        BankAccount expected = accounts.findAll().stream()
+                .filter(a -> a.getBalance() >= 100_000)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(expected, service.findFirstRichAccount(100_000).orElseThrow());
+    }
+
+    @Test
+    void findFirstRichAccountReturnsEmptyForNoMatch() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000232"), "Ivan", 1000));
+
+        assertTrue(service.findFirstRichAccount(100_000).isEmpty());
+    }
+
+    @Test
+    void findFirstRichAccountSupportsOrElseThrow() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            service.findFirstRichAccount(100_000)
+                    .orElseThrow(() -> new IllegalStateException("No rich account"));
+        });
+
+        assertEquals("No rich account", ex.getMessage());
+    }
+
+    @Test
+    void findFirstRichAccountSupportsMapOrElse() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000233"), "Ivan", 100_000));
+
+        String label = service.findFirstRichAccount(100_000)
+                .map(a -> a.getId().value())
+                .orElse("not found");
+        String missingLabel = service.findFirstRichAccount(200_000)
+                .map(a -> a.getId().value())
+                .orElse("not found");
+
+        assertEquals("0000000233", label);
+        assertEquals("not found", missingLabel);
+    }
 }
