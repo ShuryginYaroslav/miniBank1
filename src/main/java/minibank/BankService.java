@@ -97,6 +97,21 @@ public class BankService {
                 .toList();
     }
 
+    public boolean hasBlockedAccounts() {
+        return accounts.findAll().stream()
+                .anyMatch(a -> transferService.isBlocked(a.getNumber()));
+    }
+
+    public boolean allAccountsPositive() {
+        return accounts.findAll().stream()
+                .allMatch(a -> a.getBalance() > 0);
+    }
+
+    public boolean noCreditAccounts() {
+        return accounts.findAll().stream()
+                .noneMatch(CreditAccount.class::isInstance);
+    }
+
     public boolean closeAccount(AccountNumber number) {
         return accounts.deleteById(number);
     }

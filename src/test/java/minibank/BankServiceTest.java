@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -556,5 +557,59 @@ class BankServiceTest {
         assertThrows(UnsupportedOperationException.class, () -> service.sortedByNumber().clear());
         assertThrows(UnsupportedOperationException.class, () -> service.sortedByTypeThenBalance().clear());
         assertThrows(UnsupportedOperationException.class, () -> service.sortedByOwnerThenNumber().clear());
+    }
+
+    @Test
+    void hasBlockedAccountsDetectsBlockedAccount() {
+        BankAccount first = new DebitAccount(new AccountNumber("0000000221"), "Ivan", 1000);
+        BankAccount second = new DebitAccount(new AccountNumber("0000000222"), "Petr", 2000);
+        service.openAccount(first);
+        service.openAccount(second);
+
+        assertFalse(service.hasBlockedAccounts());
+
+        blockedAccounts.block(second.getId());
+        assertTrue(service.hasBlockedAccounts());
+
+        blockedAccounts.unblock(second.getId());
+        assertFalse(service.hasBlockedAccounts());
+    }
+
+    @Test
+    void allAccountsPositiveChecksEveryBalance() {
+        assertTrue(service.allAccountsPositive());
+
+        service.openAccount(new DebitAccount(new AccountNumber("0000000223"), "Ivan", 1000));
+        service.openAccount(new SavingsAccount(new AccountNumber("0000000224"), "Petr", 500, 500));
+        assertTrue(service.allAccountsPositive());
+
+        service.openAccount(new DebitAccount(new AccountNumber("0000000225"), "Maria", 0));
+        assertFalse(service.allAccountsPositive());
+    }
+
+    @Test
+    void noCreditAccountsChecksAccountTypes() {
+        assertTrue(service.noCreditAccounts());
+
+        service.openAccount(new DebitAccount(new AccountNumber("0000000226"), "Ivan", 1000));
+        service.openAccount(new SavingsAccount(new AccountNumber("0000000227"), "Petr", 2000, 500));
+        assertTrue(service.noCreditAccounts());
+
+        service.openAccount(new CreditAccount(new AccountNumber("0000000228"), "Maria", 3000, 5000));
+        assertFalse(service.noCreditAccounts());
+    }
+
+    @Test
+    void anyMatchStopsAfterFirstMatchingElement() {
+        List<Integer> values = List.of(1, 2, 3, 4, 5);
+        AtomicInteger calls = new AtomicInteger();
+
+        boolean found = values.stream().anyMatch(value -> {
+            calls.incrementAndGet();
+            return value == 2;
+        });
+
+        assertTrue(found);
+        assertEquals(2, calls.get());
     }
 }

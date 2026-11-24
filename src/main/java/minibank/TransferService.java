@@ -37,6 +37,10 @@ public class TransferService {
         this.journal = journal;
     }
 
+    public boolean isBlocked(AccountNumber number) {
+        return blockedAccounts.isBlocked(number);
+    }
+
     public void transfer(BankAccount from, BankAccount to, double amount) {
         if (amount <= 0) {
             throw new InvalidAmountException("Сумма перевода должна быть положительной");
