@@ -3,6 +3,7 @@ package minibank;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,5 +48,50 @@ class CollectionFunctionsTest {
         result.clear();
 
         assertEquals(accounts, CollectionFunctions.filter(accounts, alwaysTrue));
+    }
+
+    @Test
+    void mapsAccountsToSummaries() {
+        Function<BankAccount, AccountSummary> toSummary = account -> new AccountSummary(
+                account.getId(),
+                account.getClass().getSimpleName(),
+                account.getBalance()
+        );
+
+        assertEquals(
+                List.of(
+                        new AccountSummary(new AccountNumber("0000000061"), "DebitAccount", 1000),
+                        new AccountSummary(new AccountNumber("0000000062"), "DebitAccount", 0),
+                        new AccountSummary(new AccountNumber("0000000063"), "CreditAccount", 500),
+                        new AccountSummary(new AccountNumber("0000000064"), "SavingsAccount", 200000)
+                ),
+                CollectionFunctions.map(accounts, toSummary)
+        );
+    }
+
+    @Test
+    void mapsAccountsToLabels() {
+        Function<BankAccount, String> label =
+                account -> account.getId() + " : " + account.getBalance();
+
+        assertEquals(
+                List.of(
+                        "AccountNumber[value=0000000061] : 1000.0",
+                        "AccountNumber[value=0000000062] : 0.0",
+                        "AccountNumber[value=0000000063] : 500.0",
+                        "AccountNumber[value=0000000064] : 200000.0"
+                ),
+                CollectionFunctions.map(accounts, label)
+        );
+    }
+
+    @Test
+    void mapReturnsIndependentListAndAcceptsSupertypeFunction() {
+        Function<Object, String> stringValue = value -> String.valueOf(value);
+        List<String> result = CollectionFunctions.map(accounts, stringValue);
+
+        result.clear();
+
+        assertEquals(accounts.size(), CollectionFunctions.map(accounts, stringValue).size());
     }
 }
