@@ -660,4 +660,40 @@ class BankServiceTest {
         assertEquals("0000000233", label);
         assertEquals("not found", missingLabel);
     }
+
+    @Test
+    void totalBalanceSumsAllAccounts() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000234"), "Ivan", 1000));
+        service.openAccount(new CreditAccount(new AccountNumber("0000000235"), "Petr", 2000, 5000));
+        service.openAccount(new SavingsAccount(new AccountNumber("0000000236"), "Maria", 3000, 500));
+
+        assertEquals(6000, service.totalBalance());
+    }
+
+    @Test
+    void averageBalanceReturnsAverage() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000237"), "Ivan", 1000));
+        service.openAccount(new DebitAccount(new AccountNumber("0000000238"), "Petr", 2000));
+
+        assertEquals(1500, service.averageBalance().orElseThrow());
+    }
+
+    @Test
+    void richestAccountReturnsAccountWithMaxBalance() {
+        BankAccount poorest = new DebitAccount(new AccountNumber("0000000239"), "Ivan", 1000);
+        BankAccount richest = new DebitAccount(new AccountNumber("0000000240"), "Petr", 3000);
+        BankAccount middle = new DebitAccount(new AccountNumber("0000000241"), "Maria", 2000);
+        service.openAccount(poorest);
+        service.openAccount(richest);
+        service.openAccount(middle);
+
+        assertSame(richest, service.richestAccount().orElseThrow());
+    }
+
+    @Test
+    void numericStreamsHandleEmptyRepository() {
+        assertEquals(0, service.totalBalance());
+        assertTrue(service.averageBalance().isEmpty());
+        assertTrue(service.richestAccount().isEmpty());
+    }
 }
