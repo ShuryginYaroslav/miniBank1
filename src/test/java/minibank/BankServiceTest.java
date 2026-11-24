@@ -2,6 +2,9 @@ package minibank;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.function.Predicate;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class BankServiceTest {
@@ -141,5 +144,59 @@ class BankServiceTest {
         assertEquals(2000, to.getBalance());
         assertEquals(0, journal.size());
         assertEquals(0, notificationService.getNotificationCount());
+    }
+
+    @Test
+    void findAccountsFiltersByPositiveBalance() {
+        BankAccount positive = new DebitAccount(new AccountNumber("0000000111"), "Ivan", 1000);
+        BankAccount empty = new DebitAccount(new AccountNumber("0000000112"), "Petr", 0);
+        service.openAccount(positive);
+        service.openAccount(empty);
+
+        Predicate<BankAccount> positiveBalance = account -> account.getBalance() > 0;
+        List<BankAccount> result = service.findAccounts(positiveBalance);
+
+        assertEquals(1, result.size());
+        assertTrue(result.contains(positive));
+        assertFalse(result.contains(empty));
+    }
+
+    @Test
+    void findAccountsFiltersRichAccounts() {
+        BankAccount rich = new DebitAccount(new AccountNumber("0000000113"), "Ivan", 100000);
+        BankAccount poor = new DebitAccount(new AccountNumber("0000000114"), "Petr", 99999);
+        service.openAccount(rich);
+        service.openAccount(poor);
+
+        Predicate<BankAccount> richPredicate = account -> account.getBalance() >= 100_000;
+        List<BankAccount> result = service.findAccounts(richPredicate);
+
+        assertEquals(List.of(rich), result);
+    }
+
+    @Test
+    void findAccountsFiltersDebitAccountsOnly() {
+        BankAccount debit = new DebitAccount(new AccountNumber("0000000115"), "Ivan", 1000);
+        BankAccount credit = new CreditAccount(new AccountNumber("0000000116"), "Petr", 1000, 5000);
+        service.openAccount(debit);
+        service.openAccount(credit);
+
+        Predicate<BankAccount> debitOnly = DebitAccount.class::isInstance;
+        List<BankAccount> result = service.findAccounts(debitOnly);
+
+        assertEquals(List.of(debit), result);
+    }
+
+    @Test
+    void findAccountsReturnsNewListAndDoesNotExposeStorage() {
+        BankAccount account = new DebitAccount(new AccountNumber("0000000117"), "Ivan", 1000);
+        service.openAccount(account);
+
+        List<BankAccount> result = service.findAccounts(value -> true);
+        result.clear();
+
+        assertSame(account, service.findAccount(new AccountNumber("0000000117")));
+        assertEquals(1, service.findAccounts(value -> true).size());
+        assertNotSame(service.findAccounts(value -> true), service.findAccounts(value -> true));
     }
 }
