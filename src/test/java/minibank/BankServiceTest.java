@@ -474,4 +474,87 @@ class BankServiceTest {
         assertEquals(before, accounts.findAll());
         assertThrows(UnsupportedOperationException.class, summaries::clear);
     }
+
+    @Test
+    void richestFirstSortsByDescendingBalance() {
+        BankAccount middle = new DebitAccount(new AccountNumber("0000000201"), "Ivan", 2000);
+        BankAccount richest = new DebitAccount(new AccountNumber("0000000202"), "Petr", 3000);
+        BankAccount poorest = new DebitAccount(new AccountNumber("0000000203"), "Maria", 1000);
+        service.openAccount(middle);
+        service.openAccount(richest);
+        service.openAccount(poorest);
+
+        assertEquals(List.of(richest, middle, poorest), service.richestFirst());
+    }
+
+    @Test
+    void sortedByNumberSortsByAccountNumber() {
+        BankAccount second = new DebitAccount(new AccountNumber("0000000205"), "Ivan", 1000);
+        BankAccount first = new DebitAccount(new AccountNumber("0000000204"), "Petr", 2000);
+        BankAccount third = new DebitAccount(new AccountNumber("0000000206"), "Maria", 3000);
+        service.openAccount(second);
+        service.openAccount(first);
+        service.openAccount(third);
+
+        assertEquals(List.of(first, second, third), service.sortedByNumber());
+    }
+
+    @Test
+    void sortedByTypeThenBalanceSortsByTypeAndBalance() {
+        BankAccount credit = new CreditAccount(new AccountNumber("0000000207"), "Ivan", 500, 1000);
+        BankAccount richDebit = new DebitAccount(new AccountNumber("0000000208"), "Petr", 3000);
+        BankAccount poorDebit = new DebitAccount(new AccountNumber("0000000209"), "Maria", 1000);
+        BankAccount savings = new SavingsAccount(new AccountNumber("0000000210"), "Oleg", 2000, 500);
+        service.openAccount(richDebit);
+        service.openAccount(savings);
+        service.openAccount(poorDebit);
+        service.openAccount(credit);
+
+        assertEquals(
+                List.of(credit, poorDebit, richDebit, savings),
+                service.sortedByTypeThenBalance()
+        );
+    }
+
+    @Test
+    void sortedByOwnerThenNumberSortsByOwnerAndNumber() {
+        BankAccount petr = new DebitAccount(new AccountNumber("0000000212"), "Petr", 1000);
+        BankAccount ivanLater = new DebitAccount(new AccountNumber("0000000214"), "Ivan", 2000);
+        BankAccount ivanEarlier = new DebitAccount(new AccountNumber("0000000213"), "Ivan", 3000);
+        BankAccount maria = new DebitAccount(new AccountNumber("0000000211"), "Maria", 4000);
+        service.openAccount(petr);
+        service.openAccount(ivanLater);
+        service.openAccount(ivanEarlier);
+        service.openAccount(maria);
+
+        assertEquals(
+                List.of(ivanEarlier, ivanLater, maria, petr),
+                service.sortedByOwnerThenNumber()
+        );
+    }
+
+    @Test
+    void sortingResultsDoNotChangeRepositoryOrder() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000215"), "Ivan", 1000));
+        service.openAccount(new CreditAccount(new AccountNumber("0000000216"), "Petr", 2000, 5000));
+        service.openAccount(new SavingsAccount(new AccountNumber("0000000217"), "Maria", 3000, 500));
+        List<BankAccount> before = accounts.findAll();
+
+        service.richestFirst();
+        service.sortedByNumber();
+        service.sortedByTypeThenBalance();
+        service.sortedByOwnerThenNumber();
+
+        assertEquals(before, accounts.findAll());
+    }
+
+    @Test
+    void streamSortingResultsAreUnmodifiable() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000218"), "Ivan", 1000));
+
+        assertThrows(UnsupportedOperationException.class, () -> service.richestFirst().clear());
+        assertThrows(UnsupportedOperationException.class, () -> service.sortedByNumber().clear());
+        assertThrows(UnsupportedOperationException.class, () -> service.sortedByTypeThenBalance().clear());
+        assertThrows(UnsupportedOperationException.class, () -> service.sortedByOwnerThenNumber().clear());
+    }
 }
