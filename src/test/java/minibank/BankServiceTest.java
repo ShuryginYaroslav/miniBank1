@@ -18,6 +18,11 @@ class BankServiceTest {
     private final TransferService transferService = new TransferService(
             new NoCommission(), notificationService, blockedAccounts, journal);
     private final BankService service = new BankService(accounts, transferService);
+    private final Predicate<BankAccount> rich = account -> account.getBalance() >= 100_000;
+    private final Predicate<BankAccount> notBlocked =
+            account -> !blockedAccounts.isBlocked(account.getId());
+    private final Predicate<BankAccount> debit = DebitAccount.class::isInstance;
+    private final Predicate<BankAccount> credit = CreditAccount.class::isInstance;
 
     @Test
     void openedAccountCanBeFound() {
@@ -198,5 +203,91 @@ class BankServiceTest {
         assertSame(account, service.findAccount(new AccountNumber("0000000117")));
         assertEquals(1, service.findAccounts(value -> true).size());
         assertNotSame(service.findAccounts(value -> true), service.findAccounts(value -> true));
+    }
+
+    @Test
+    void findAccountsByMinimumBalance() {
+        BankAccount richEnough = new DebitAccount(new AccountNumber("0000000121"), "Ivan", 100000);
+        BankAccount tooPoor = new DebitAccount(new AccountNumber("0000000122"), "Petr", 99999);
+        service.openAccount(richEnough);
+        service.openAccount(tooPoor);
+        double threshold = 100_000;
+        Predicate<BankAccount> minimumBalance = account -> account.getBalance() >= threshold;
+
+        assertEquals(List.of(richEnough), service.findAccounts(minimumBalance));
+    }
+
+    @Test
+    void findAccountsIgnoreBlocked() {
+        BankAccount unblocked = new DebitAccount(new AccountNumber("0000000123"), "Ivan", 1000);
+        BankAccount blocked = new DebitAccount(new AccountNumber("0000000124"), "Petr", 1000);
+        service.openAccount(unblocked);
+        service.openAccount(blocked);
+        blockedAccounts.block(blocked.getId());
+
+        assertEquals(List.of(unblocked), service.findAccounts(notBlocked));
+    }
+
+    @Test
+    void findAccountsOnlyDebit() {
+        BankAccount debitAccount = new DebitAccount(new AccountNumber("0000000125"), "Ivan", 1000);
+        BankAccount creditAccount = new CreditAccount(new AccountNumber("0000000126"), "Petr", 1000, 5000);
+        service.openAccount(debitAccount);
+        service.openAccount(creditAccount);
+
+        assertEquals(List.of(debitAccount), service.findAccounts(debit));
+    }
+
+    @Test
+    void findAccountsRichAndUnblockedDebit() {
+        BankAccount richUnblockedDebit = new DebitAccount(new AccountNumber("0000000127"), "Ivan", 100000);
+        BankAccount richBlockedDebit = new DebitAccount(new AccountNumber("0000000128"), "Petr", 200000);
+        BankAccount richUnblockedCredit = new CreditAccount(new AccountNumber("0000000129"), "Maria", 300000, 5000);
+        BankAccount poorUnblockedDebit = new DebitAccount(new AccountNumber("0000000130"), "Oleg", 1000);
+        service.openAccount(richUnblockedDebit);
+        service.openAccount(richBlockedDebit);
+        service.openAccount(richUnblockedCredit);
+        service.openAccount(poorUnblockedDebit);
+        blockedAccounts.block(richBlockedDebit.getId());
+        Predicate<BankAccount> candidates = rich.and(notBlocked).and(debit);
+
+        assertEquals(List.of(richUnblockedDebit), service.findAccounts(candidates));
+    }
+
+    @Test
+    void findAccountsNotDebit() {
+        BankAccount debitAccount = new DebitAccount(new AccountNumber("0000000131"), "Ivan", 1000);
+        BankAccount creditAccount = new CreditAccount(new AccountNumber("0000000132"), "Petr", 1000, 5000);
+        BankAccount savingsAccount = new SavingsAccount(new AccountNumber("0000000133"), "Maria", 1000, 500);
+        service.openAccount(debitAccount);
+        service.openAccount(creditAccount);
+        service.openAccount(savingsAccount);
+
+        List<BankAccount> result = service.findAccounts(debit.negate());
+
+        assertEquals(2, result.size());
+        assertTrue(result.contains(creditAccount));
+        assertTrue(result.contains(savingsAccount));
+        assertFalse(result.contains(debitAccount));
+    }
+
+    @Test
+    void findAccountsRichOrCredit() {
+        BankAccount richDebit = new DebitAccount(new AccountNumber("0000000134"), "Ivan", 100000);
+        BankAccount poorCredit = new CreditAccount(new AccountNumber("0000000135"), "Petr", 1000, 5000);
+        BankAccount richSavings = new SavingsAccount(new AccountNumber("0000000136"), "Maria", 200000, 500);
+        BankAccount poorSavings = new SavingsAccount(new AccountNumber("0000000137"), "Oleg", 1000, 500);
+        service.openAccount(richDebit);
+        service.openAccount(poorCredit);
+        service.openAccount(richSavings);
+        service.openAccount(poorSavings);
+
+        List<BankAccount> result = service.findAccounts(rich.or(credit));
+
+        assertEquals(3, result.size());
+        assertTrue(result.contains(richDebit));
+        assertTrue(result.contains(poorCredit));
+        assertTrue(result.contains(richSavings));
+        assertFalse(result.contains(poorSavings));
     }
 }
