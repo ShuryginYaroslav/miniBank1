@@ -2,6 +2,7 @@ package minibank;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -289,5 +290,82 @@ class BankServiceTest {
         assertTrue(result.contains(poorCredit));
         assertTrue(result.contains(richSavings));
         assertFalse(result.contains(poorSavings));
+    }
+
+    @Test
+    void sortedAccountsByBalanceAscending() {
+        BankAccount middle = new DebitAccount(new AccountNumber("0000000141"), "Ivan", 2000);
+        BankAccount rich = new DebitAccount(new AccountNumber("0000000142"), "Petr", 3000);
+        BankAccount poor = new DebitAccount(new AccountNumber("0000000143"), "Maria", 1000);
+        service.openAccount(middle);
+        service.openAccount(rich);
+        service.openAccount(poor);
+        Comparator<BankAccount> byBalance = Comparator.comparingDouble(BankAccount::getBalance);
+
+        assertEquals(List.of(poor, middle, rich), service.sortedAccounts(byBalance));
+    }
+
+    @Test
+    void sortedAccountsByBalanceDescending() {
+        BankAccount middle = new DebitAccount(new AccountNumber("0000000144"), "Ivan", 2000);
+        BankAccount rich = new DebitAccount(new AccountNumber("0000000145"), "Petr", 3000);
+        BankAccount poor = new DebitAccount(new AccountNumber("0000000146"), "Maria", 1000);
+        service.openAccount(middle);
+        service.openAccount(rich);
+        service.openAccount(poor);
+        Comparator<BankAccount> byBalance = Comparator.comparingDouble(BankAccount::getBalance);
+        Comparator<BankAccount> byBalanceDesc = byBalance.reversed();
+
+        assertEquals(List.of(rich, middle, poor), service.sortedAccounts(byBalanceDesc));
+    }
+
+    @Test
+    void sortedAccountsByNumber() {
+        BankAccount second = new DebitAccount(new AccountNumber("0000000148"), "Ivan", 1000);
+        BankAccount first = new DebitAccount(new AccountNumber("0000000147"), "Petr", 2000);
+        BankAccount third = new DebitAccount(new AccountNumber("0000000149"), "Maria", 3000);
+        service.openAccount(second);
+        service.openAccount(first);
+        service.openAccount(third);
+        Comparator<BankAccount> byNumber = Comparator.comparing(a -> a.getId().value());
+
+        assertEquals(List.of(first, second, third), service.sortedAccounts(byNumber));
+    }
+
+    @Test
+    void sortedAccountsByTypeThenBalance() {
+        BankAccount credit = new CreditAccount(new AccountNumber("0000000150"), "Ivan", 500, 1000);
+        BankAccount richDebit = new DebitAccount(new AccountNumber("0000000151"), "Petr", 3000);
+        BankAccount poorDebit = new DebitAccount(new AccountNumber("0000000152"), "Maria", 1000);
+        BankAccount savings = new SavingsAccount(new AccountNumber("0000000153"), "Oleg", 2000, 500);
+        service.openAccount(richDebit);
+        service.openAccount(savings);
+        service.openAccount(poorDebit);
+        service.openAccount(credit);
+        Comparator<BankAccount> byTypeThenBalance =
+                Comparator
+                        .comparing((BankAccount a) -> a.getClass().getSimpleName())
+                        .thenComparingDouble(BankAccount::getBalance);
+
+        assertEquals(
+                List.of(credit, poorDebit, richDebit, savings),
+                service.sortedAccounts(byTypeThenBalance)
+        );
+    }
+
+    @Test
+    void sortingDoesNotChangeBankStorage() {
+        BankAccount first = new DebitAccount(new AccountNumber("0000000154"), "Ivan", 3000);
+        BankAccount second = new DebitAccount(new AccountNumber("0000000155"), "Petr", 1000);
+        service.openAccount(first);
+        service.openAccount(second);
+        List<BankAccount> before = accounts.findAll();
+
+        List<BankAccount> sorted = service.sortedAccounts(
+                Comparator.comparingDouble(BankAccount::getBalance));
+
+        assertNotSame(before, sorted);
+        assertEquals(before, accounts.findAll());
+        assertEquals(1000, service.findAccount(second.getId()).getBalance());
     }
 }
