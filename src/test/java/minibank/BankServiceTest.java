@@ -435,4 +435,43 @@ class BankServiceTest {
         assertThrows(UnsupportedOperationException.class, () -> service.findDebitAccounts().clear());
         assertThrows(UnsupportedOperationException.class, () -> service.findAccountsByOwner("Ivan").clear());
     }
+
+    @Test
+    void getAccountSummariesMapsDomainModelToDto() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000191"), "Ivan", 1000));
+        service.openAccount(new CreditAccount(new AccountNumber("0000000192"), "Petr", 2000, 5000));
+        service.openAccount(new SavingsAccount(new AccountNumber("0000000193"), "Maria", 3000, 500));
+        List<BankAccount> before = accounts.findAll();
+
+        List<AccountSummary> summaries = service.getAccountSummaries();
+
+        assertEquals(before.size(), summaries.size());
+        for (int i = 0; i < before.size(); i++) {
+            BankAccount account = before.get(i);
+            assertEquals(
+                    new AccountSummary(
+                            account.getId(),
+                            account.getClass().getSimpleName(),
+                            account.getBalance()
+                    ),
+                    summaries.get(i)
+            );
+        }
+    }
+
+    @Test
+    void getAccountSummariesReturnsEmptyListForEmptyRepository() {
+        assertTrue(service.getAccountSummaries().isEmpty());
+    }
+
+    @Test
+    void getAccountSummariesDoesNotChangeStorage() {
+        service.openAccount(new DebitAccount(new AccountNumber("0000000194"), "Ivan", 1000));
+        List<BankAccount> before = accounts.findAll();
+
+        List<AccountSummary> summaries = service.getAccountSummaries();
+
+        assertEquals(before, accounts.findAll());
+        assertThrows(UnsupportedOperationException.class, summaries::clear);
+    }
 }

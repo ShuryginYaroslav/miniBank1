@@ -55,6 +55,12 @@ public class BankService {
                 .toList();
     }
 
+    public List<AccountSummary> getAccountSummaries() {
+        return accounts.findAll().stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
     public List<BankAccount> sortedAccounts(Comparator<? super BankAccount> comparator) {
         List<BankAccount> result = new ArrayList<>(accounts.findAll());
         result.sort(comparator);
@@ -75,5 +81,13 @@ public class BankService {
             throw new IllegalArgumentException("Счёт получателя не найден");
         }
         transferService.transfer(from, to, amount);
+    }
+
+    private AccountSummary toSummary(BankAccount account) {
+        return new AccountSummary(
+                account.getId(),
+                account.getClass().getSimpleName(),
+                account.getBalance()
+        );
     }
 }
