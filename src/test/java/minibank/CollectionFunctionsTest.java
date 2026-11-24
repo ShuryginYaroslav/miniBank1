@@ -2,7 +2,11 @@ package minibank;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -15,6 +19,23 @@ class CollectionFunctionsTest {
             new CreditAccount(new AccountNumber("0000000063"), "Maria", 500, 1000),
             new SavingsAccount(new AccountNumber("0000000064"), "Oleg", 200000, 500)
     );
+
+    private List<AccountSummary> summaries() {
+        return List.of(
+                new AccountSummary(new AccountNumber("0000000061"), "DebitAccount", 1000),
+                new AccountSummary(new AccountNumber("0000000062"), "DebitAccount", 0),
+                new AccountSummary(new AccountNumber("0000000063"), "CreditAccount", 500),
+                new AccountSummary(new AccountNumber("0000000064"), "SavingsAccount", 200000)
+        );
+    }
+
+    private String expectedSummaryOutput() {
+        String lineSeparator = System.lineSeparator();
+        return "AccountSummary[number=AccountNumber[value=0000000061], type=DebitAccount, balance=1000.0]" + lineSeparator
+                + "AccountSummary[number=AccountNumber[value=0000000062], type=DebitAccount, balance=0.0]" + lineSeparator
+                + "AccountSummary[number=AccountNumber[value=0000000063], type=CreditAccount, balance=500.0]" + lineSeparator
+                + "AccountSummary[number=AccountNumber[value=0000000064], type=SavingsAccount, balance=200000.0]";
+    }
 
     @Test
     void filtersByPositiveBalance() {
@@ -93,5 +114,48 @@ class CollectionFunctionsTest {
         result.clear();
 
         assertEquals(accounts.size(), CollectionFunctions.map(accounts, stringValue).size());
+    }
+
+    @Test
+    void forEachAppliesLambdaPrinter() {
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        try (PrintStream capturedOut = new PrintStream(output)) {
+            System.setOut(capturedOut);
+            Consumer<AccountSummary> printer = summary -> System.out.println(summary);
+
+            CollectionFunctions.forEach(summaries(), printer);
+
+            assertEquals(expectedSummaryOutput(), output.toString().trim());
+        } finally {
+            System.setOut(originalOut);
+        }
+    }
+
+    @Test
+    void forEachAcceptsMethodReferencePrinter() {
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        try (PrintStream capturedOut = new PrintStream(output)) {
+            System.setOut(capturedOut);
+
+            CollectionFunctions.forEach(summaries(), System.out::println);
+
+            assertEquals(expectedSummaryOutput(), output.toString().trim());
+        } finally {
+            System.setOut(originalOut);
+        }
+    }
+
+    @Test
+    void forEachAcceptsSupertypeConsumer() {
+        List<Object> seen = new ArrayList<>();
+        Consumer<Object> collector = seen::add;
+
+        CollectionFunctions.forEach(accounts, collector);
+
+        assertEquals(accounts, seen);
     }
 }
