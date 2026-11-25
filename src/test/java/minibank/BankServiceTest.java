@@ -696,4 +696,15 @@ class BankServiceTest {
         assertTrue(service.averageBalance().isEmpty());
         assertTrue(service.richestAccount().isEmpty());
     }
+
+    @Test
+    void findRichAccountsHandlesZeroAndOneMatch() {
+        assertTrue(service.findRichAccounts(100_000).isEmpty());
+
+        BankAccount onlyRich = new DebitAccount(new AccountNumber("0000000242"), "Ivan", 100_000);
+        service.openAccount(new DebitAccount(new AccountNumber("0000000243"), "Petr", 99_999));
+        service.openAccount(onlyRich);
+
+        assertEquals(List.of(onlyRich), service.findRichAccounts(100_000));
+    }
 }

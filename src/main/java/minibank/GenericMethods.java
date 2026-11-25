@@ -1,5 +1,8 @@
 package minibank;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 public final class GenericMethods {
     private GenericMethods() {
     }
@@ -22,11 +25,7 @@ public final class GenericMethods {
         if (values == null) {
             throw new IllegalArgumentException("Массив не должен быть null");
         }
-        for (T value : values) {
-            if (value == null ? target == null : value.equals(target)) {
-                return true;
-            }
-        }
-        return false;
+        return Arrays.stream(values)
+                .anyMatch(value -> Objects.equals(value, target));
     }
 }

@@ -1,5 +1,6 @@
 package minibank;
 
+import java.util.Comparator;
 import java.util.List;
 
 public final class AccountUtils {
@@ -7,16 +8,8 @@ public final class AccountUtils {
     }
 
     public static <T extends BankAccount> T richest(List<T> accounts) {
-        if (accounts.isEmpty()) {
-            throw new IllegalArgumentException("Список счетов пуст");
-        }
-
-        T richest = accounts.get(0);
-        for (T account : accounts) {
-            if (account.getBalance() > richest.getBalance()) {
-                richest = account;
-            }
-        }
-        return richest;
+        return accounts.stream()
+                .max(Comparator.comparingDouble(BankAccount::getBalance))
+                .orElseThrow(() -> new IllegalArgumentException("Список счетов пуст"));
     }
 }

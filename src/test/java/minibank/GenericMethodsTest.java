@@ -44,6 +44,13 @@ class GenericMethodsTest {
     }
 
     @Test
+    void containsHandlesNullTarget() {
+        String[] names = {"Ivan", null, "Oleg"};
+
+        assertTrue(GenericMethods.contains(names, null));
+    }
+
+    @Test
     void firstAndLastRejectEmptyArray() {
         String[] empty = {};
 
