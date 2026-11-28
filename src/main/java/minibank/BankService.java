@@ -1,163 +1,121 @@
 package minibank;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.Predicate;
 
 public class BankService {
-    private final Repository<AccountNumber, BankAccount> accounts;
-    private final TransferService transferService;
+    private final AccountService accountService;
+    private final TransferApplicationService transferApplicationService;
+    private final BankReportService bankReportService;
 
     public BankService(Repository<AccountNumber, BankAccount> accounts,
                        TransferService transferService) {
-        if (accounts == null) {
-            throw new IllegalArgumentException("Репозиторий счетов не может быть нулевым");
+        this(new AccountService(accounts),
+                new TransferApplicationService(accounts, transferService),
+                new BankReportService(accounts, transferService));
+    }
+
+    public BankService(AccountService accountService,
+                       TransferApplicationService transferApplicationService,
+                       BankReportService bankReportService) {
+        if (accountService == null) {
+            throw new IllegalArgumentException("Сервис счетов не может быть нулевым");
         }
-        if (transferService == null) {
+        if (transferApplicationService == null) {
             throw new IllegalArgumentException("Сервис переводов не может быть нулевым");
         }
-        this.accounts = accounts;
-        this.transferService = transferService;
+        if (bankReportService == null) {
+            throw new IllegalArgumentException("Сервис отчётности не может быть нулевым");
+        }
+        this.accountService = accountService;
+        this.transferApplicationService = transferApplicationService;
+        this.bankReportService = bankReportService;
     }
 
     public void openAccount(BankAccount account) {
-        if (account == null) {
-            throw new IllegalArgumentException("Счёт не может быть null");
-        }
-        accounts.save(account);
+        accountService.open(account);
     }
 
     public BankAccount findAccount(AccountNumber number) {
-        return accounts.findById(number);
+        return accountService.find(number).orElse(null);
     }
 
     public List<BankAccount> findAccounts(Predicate<? super BankAccount> condition) {
-        return CollectionFunctions.filter(accounts.findAll(), condition);
+        return bankReportService.findAccounts(condition);
     }
 
     public List<BankAccount> findRichAccounts(double minBalance) {
-        return accounts.findAll().stream()
-                .filter(a -> a.getBalance() >= minBalance)
-                .toList();
+        return bankReportService.findRichAccounts(minBalance);
     }
 
     public List<BankAccount> findDebitAccounts() {
-        return accounts.findAll().stream()
-                .filter(DebitAccount.class::isInstance)
-                .toList();
+        return bankReportService.findDebitAccounts();
     }
 
     public List<BankAccount> findAccountsByOwner(String owner) {
-        return accounts.findAll().stream()
-                .filter(a -> Objects.equals(a.getOwner(), owner))
-                .toList();
+        return bankReportService.findAccountsByOwner(owner);
     }
 
     public List<AccountSummary> getAccountSummaries() {
-        return accounts.findAll().stream()
-                .map(this::toSummary)
-                .toList();
+        return bankReportService.getAccountSummaries();
     }
 
     public List<BankAccount> sortedAccounts(Comparator<? super BankAccount> comparator) {
-        List<BankAccount> result = new ArrayList<>(accounts.findAll());
-        result.sort(comparator);
-        return result;
+        return bankReportService.sortedAccounts(comparator);
     }
 
     public List<BankAccount> richestFirst() {
-        return accounts.findAll().stream()
-                .sorted(Comparator
-                        .comparingDouble(BankAccount::getBalance)
-                        .reversed())
-                .toList();
+        return bankReportService.richestFirst();
     }
 
     public List<BankAccount> sortedByNumber() {
-        return accounts.findAll().stream()
-                .sorted(Comparator.comparing((BankAccount a) -> a.getId().value()))
-                .toList();
+        return bankReportService.sortedByNumber();
     }
 
     public List<BankAccount> sortedByTypeThenBalance() {
-        return accounts.findAll().stream()
-                .sorted(Comparator
-                        .comparing((BankAccount a) -> a.getClass().getSimpleName())
-                        .thenComparingDouble(BankAccount::getBalance))
-                .toList();
+        return bankReportService.sortedByTypeThenBalance();
     }
 
     public List<BankAccount> sortedByOwnerThenNumber() {
-        return accounts.findAll().stream()
-                .sorted(Comparator
-                        .comparing((BankAccount a) -> a.getOwner())
-                        .thenComparing(a -> a.getId().value()))
-                .toList();
+        return bankReportService.sortedByOwnerThenNumber();
     }
 
     public boolean hasBlockedAccounts() {
-        return accounts.findAll().stream()
-                .anyMatch(a -> transferService.isBlocked(a.getNumber()));
+        return bankReportService.hasBlockedAccounts();
     }
 
     public boolean allAccountsPositive() {
-        return accounts.findAll().stream()
-                .allMatch(a -> a.getBalance() > 0);
+        return bankReportService.allAccountsPositive();
     }
 
     public boolean noCreditAccounts() {
-        return accounts.findAll().stream()
-                .noneMatch(CreditAccount.class::isInstance);
+        return bankReportService.noCreditAccounts();
     }
 
     public Optional<BankAccount> findFirstRichAccount(double minBalance) {
-        return accounts.findAll().stream()
-                .filter(a -> a.getBalance() >= minBalance)
-                .findFirst();
+        return bankReportService.findFirstRichAccount(minBalance);
     }
 
     public double totalBalance() {
-        return accounts.findAll().stream()
-                .mapToDouble(BankAccount::getBalance)
-                .sum();
+        return bankReportService.totalBalance();
     }
 
     public OptionalDouble averageBalance() {
-        return accounts.findAll().stream()
-                .mapToDouble(BankAccount::getBalance)
-                .average();
+        return bankReportService.averageBalance();
     }
 
     public Optional<BankAccount> richestAccount() {
-        return accounts.findAll().stream()
-                .max(Comparator.comparingDouble(BankAccount::getBalance));
+        return bankReportService.richestAccount();
     }
 
     public boolean closeAccount(AccountNumber number) {
-        return accounts.deleteById(number);
+        return accountService.close(number);
     }
 
     public void transfer(AccountNumber fromNumber, AccountNumber toNumber, double amount) {
-        BankAccount from = accounts.findById(fromNumber);
-        if (from == null) {
-            throw new IllegalArgumentException("Счёт отправителя не найден");
-        }
-        BankAccount to = accounts.findById(toNumber);
-        if (to == null) {
-            throw new IllegalArgumentException("Счёт получателя не найден");
-        }
-        transferService.transfer(from, to, amount);
-    }
-
-    private AccountSummary toSummary(BankAccount account) {
-        return new AccountSummary(
-                account.getId(),
-                account.getClass().getSimpleName(),
-                account.getBalance()
-        );
+        transferApplicationService.transfer(fromNumber, toNumber, amount);
     }
 }
